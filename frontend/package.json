@@ -1,0 +1,71 @@
+{
+  "name": "oozo-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for document change detection and regulatory compliance system",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "axios": "^1.6.0",
+    "antd": "^5.12.0",
+    "react-dropzone": "^14.2.3",
+    "react-hook-form": "^7.48.0",
+    "react-router-dom": "^6.20.0",
+    "styled-components": "^6.1.0",
+    "dayjs": "^1.11.10",
+    "lodash": "^4.17.21",
+    "file-saver": "^2.0.5",
+    "react-csv": "^2.2.2",
+    "react-pdf": "^7.5.1",
+    "react-hot-toast": "^2.4.1",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/lodash": "^4.14.202",
+    "@types/file-saver": "^2.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.1.0",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "prettier": "^3.1.0",
+    "vitest": "^0.34.0",
+    "@vitest/ui": "^0.34.0",
+    "c8": "^8.0.1",
+    "jsdom": "^22.1.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/user-event": "^14.5.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
