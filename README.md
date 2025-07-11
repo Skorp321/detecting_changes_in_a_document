@@ -32,8 +32,8 @@
 
 1. Клонирование репозитория:
 ```bash
-git clone <repository-url>
-cd oozo
+git clone git@github.com:Skorp321/detecting_changes_in_a_document.git
+cd detecting_changes_in_a_document
 ```
 
 2. Создание файла окружения:
