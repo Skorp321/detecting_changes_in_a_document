@@ -8,7 +8,7 @@ services:
     depends_on:
       - backend
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_API_URL=${API_URL:-/api}
     networks:
       - app-network
     healthcheck:
@@ -31,19 +31,17 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - SECRET_KEY=your_secret_key_here_change_in_production
-      - OPENAI_API_KEY=sk-dummy-key-for-development
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-qwen3:32b}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://10f9698e-46b7-4a33-be37-f6495989f01f.modelrun.inference.cloud.ru}
       - ALLOWED_EXTENSIONS=pdf,docx,txt
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://95.31.20.57:3000,http://95.31.20.57,http://localhost}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
-      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-pdf,docx,txt}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     networks:
       - app-network
     healthcheck:
@@ -74,22 +72,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-    restart: unless-stopped
-    command: redis-server --appendonly yes
 
 volumes:
   postgres_data:

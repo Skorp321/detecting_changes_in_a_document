@@ -76,24 +76,24 @@ class ReportGenerator:
         
         content = f"""ОТЧЕТ ОБ АНАЛИЗЕ ИЗМЕНЕНИЙ В ДОКУМЕНТАХ
 
-Дата генерации: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
-Количество изменений: {len(results)}
+                    Дата генерации: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+                    Количество изменений: {len(results)}
 
-{"="*60}
+                    {"="*60}
 
-"""
+                    """
         
         for i, result in enumerate(results, 1):
             content += f"""
-ИЗМЕНЕНИЕ {i}
-{"-"*20}
-Оригинальный текст: {result.get('originalText', '')[:100]}...
-Измененный текст: {result.get('modifiedText', '')[:100]}...
-Комментарий: {result.get('llmComment', '')}
-Необходимые согласования: {', '.join(result.get('requiredServices', []))}
-Критичность: {result.get('severity', '')}
+                        ИЗМЕНЕНИЕ {i}
+                        {"-"*20}
+                        Оригинальный текст: {result.get('originalText', '')[:100]}...
+                        Измененный текст: {result.get('modifiedText', '')[:100]}...
+                        Комментарий: {result.get('llmComment', '')}
+                        Необходимые согласования: {', '.join(result.get('requiredServices', []))}
+                        Критичность: {result.get('severity', '')}
 
-"""
+                        """
         
         output.write(content.encode('utf-8'))
         output.seek(0)

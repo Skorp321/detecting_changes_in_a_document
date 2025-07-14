@@ -1,4 +1,7 @@
 data
 .env
+.env.backup
+.env.backup2
 logs
 uploads
+tests

@@ -1,7 +1,8 @@
 import logging
-import openai
+import asyncio
 from typing import List, Dict, Any
 from dataclasses import dataclass
+from openai import OpenAI
 
 from app.core.config import settings
 
@@ -22,120 +23,154 @@ class LLMAnalyzer:
     """Service for LLM-powered analysis of document changes"""
     
     def __init__(self):
-        openai.api_key = settings.OPENAI_API_KEY
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = OpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            base_url=settings.OPENAI_BASE_URL
+        )
+        self.model = settings.OPENAI_MODEL
     
     async def analyze_change(self, change, regulations: List[Dict]) -> LLMAnalysisResult:
-        """Analyze a document change using LLM"""
+        """
+        Analyze a specific change using LLM
+        
+        Args:
+            change: The change object containing original and modified text
+            regulations: List of relevant regulations
+            
+        Returns:
+            LLMAnalysisResult: Analysis result
+        """
         try:
-            # For development, return a mock result
-            if settings.OPENAI_API_KEY == "sk-dummy-key-for-development":
-                return self._mock_analysis(change)
+            # Create context from regulations
+            regulations_context = self._create_regulations_context(regulations)
             
-            # Real LLM analysis would go here
-            prompt = self._create_analysis_prompt(change, regulations)
+            # Create prompt for LLM
+            prompt = self._create_analysis_prompt(change, regulations_context)
             
-            response = self.client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+            # Make request to OpenAI API using the library
+            response = await self._make_api_request(prompt)
+            
+            # Parse response
+            content = response.choices[0].message.content
+            return self._parse_llm_response(content)
+            
+        except Exception as e:
+            logger.error(f"Error in LLM analysis: {str(e)}")
+            # Return fallback analysis
+            return LLMAnalysisResult(
+                comment=f"Невозможно проанализировать изменение: {str(e)}",
+                required_services=["Общий анализ"],
+                severity="medium",
+                confidence=0.1,
+                reasoning="Ошибка при обращении к LLM"
+            )
+    
+    async def _make_api_request(self, prompt: str):
+        """Make request to OpenAI API using the library"""
+        def sync_request():
+            return self.client.chat.completions.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": "Вы эксперт по анализу изменений в документах и нормативному соответствию."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=settings.OPENAI_TEMPERATURE,
-                max_tokens=settings.OPENAI_MAX_TOKENS
+                max_tokens=settings.OPENAI_MAX_TOKENS,
             )
-            
-            return self._parse_llm_response(response.choices[0].message.content)
-            
-        except Exception as e:
-            logger.error(f"Error in LLM analysis: {e}")
-            return self._mock_analysis(change)
-    
-    def _mock_analysis(self, change) -> LLMAnalysisResult:
-        """Mock analysis for development"""
-        severity_map = {
-            "addition": "medium",
-            "deletion": "high", 
-            "modification": "medium"
-        }
         
-        return LLMAnalysisResult(
-            comment=f"Обнаружено изменение типа '{change.change_type}'. Требуется проверка соответствия нормативным требованиям.",
-            required_services=["Юридическая служба", "Служба комплаенс"],
-            severity=severity_map.get(change.change_type, "medium"),
-            confidence=0.85,
-            reasoning="Автоматический анализ на основе типа изменения"
-        )
+        # Run synchronous OpenAI client in thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, sync_request)
     
-    def _create_analysis_prompt(self, change, regulations: List[Dict]) -> str:
-        """Create prompt for LLM analysis"""
+    def _create_regulations_context(self, regulations: List[Dict]) -> str:
+        """Create context string from regulations"""
+        if not regulations:
+            return "Нет доступных нормативных документов для анализа."
+        
+        context = "Релевантные нормативные документы:\n"
+        for reg in regulations:
+            context += f"- {reg.get('title', 'Без названия')}: {reg.get('content', '')[:200]}...\n"
+        
+        return context
+    
+    def _create_analysis_prompt(self, change, regulations_context: str) -> str:
+        """Create analysis prompt for LLM"""
+        original_text = getattr(change, 'original_text', '')
+        modified_text = getattr(change, 'modified_text', '')
+        
         prompt = f"""
-        Проанализируйте следующее изменение в документе:
-        
-        Оригинальный текст: {change.original_text}
-        Измененный текст: {change.modified_text}
-        Тип изменения: {change.change_type}
-        
-        Релевантные нормативные документы:
-        """
-        
-        for reg in regulations[:3]:  # Limit to top 3
-            prompt += f"\n- {reg['title']}: {reg['content'][:100]}..."
-        
-        prompt += """
-        
-        Пожалуйста, предоставьте:
-        1. Комментарий об изменении (2-3 предложения)
-        2. Список необходимых служб для согласования
-        3. Уровень критичности (low, medium, high, critical)
-        4. Уровень уверенности (0.0-1.0)
-        5. Обоснование решения
-        
-        Формат ответа:
-        КОММЕНТАРИЙ: [ваш комментарий]
-        СЛУЖБЫ: [служба1, служба2, ...]
-        КРИТИЧНОСТЬ: [уровень]
-        УВЕРЕННОСТЬ: [число]
-        ОБОСНОВАНИЕ: [обоснование]
-        """
-        
+Проанализируйте изменение в документе и определите необходимые согласования.
+
+ИСХОДНЫЙ ТЕКСТ:
+{original_text}
+
+ИЗМЕНЕННЫЙ ТЕКСТ:
+{modified_text}
+
+НОРМАТИВНАЯ БАЗА:
+{regulations_context}
+
+Пожалуйста, предоставьте анализ в следующем формате:
+КОММЕНТАРИЙ: [Краткое описание изменения и его последствий]
+СОГЛАСОВАНИЯ: [Список необходимых служб через запятую]
+КРИТИЧНОСТЬ: [low/medium/high]
+УВЕРЕННОСТЬ: [число от 0 до 1]
+ОБОСНОВАНИЕ: [Подробное объяснение решения]
+"""
         return prompt
     
-    def _parse_llm_response(self, response: str) -> LLMAnalysisResult:
-        """Parse LLM response into structured result"""
+    def _parse_llm_response(self, content: str) -> LLMAnalysisResult:
+        """Parse LLM response and extract structured data"""
         try:
-            lines = response.strip().split('\n')
-            result = {}
-            
-            for line in lines:
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    result[key.strip().upper()] = value.strip()
-            
-            services = []
-            if 'СЛУЖБЫ' in result:
-                services = [s.strip() for s in result['СЛУЖБЫ'].split(',')]
-            
+            # Default values
+            comment = "Изменение требует проверки"
+            required_services = ["Общий анализ"]
+            severity = "medium"
             confidence = 0.5
-            if 'УВЕРЕННОСТЬ' in result:
-                try:
-                    confidence = float(result['УВЕРЕННОСТЬ'])
-                except:
-                    confidence = 0.5
+            reasoning = "Стандартный анализ"
+            
+            # Simple parsing logic
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith('КОММЕНТАРИЙ:'):
+                    comment = line.replace('КОММЕНТАРИЙ:', '').strip()
+                elif line.startswith('СОГЛАСОВАНИЯ:'):
+                    services_str = line.replace('СОГЛАСОВАНИЯ:', '').strip()
+                    required_services = [s.strip() for s in services_str.split(',') if s.strip()]
+                elif line.startswith('КРИТИЧНОСТЬ:'):
+                    severity = line.replace('КРИТИЧНОСТЬ:', '').strip().lower()
+                elif line.startswith('УВЕРЕННОСТЬ:'):
+                    try:
+                        confidence = float(line.replace('УВЕРЕННОСТЬ:', '').strip())
+                    except ValueError:
+                        confidence = 0.5
+                elif line.startswith('ОБОСНОВАНИЕ:'):
+                    reasoning = line.replace('ОБОСНОВАНИЕ:', '').strip()
             
             return LLMAnalysisResult(
-                comment=result.get('КОММЕНТАРИЙ', 'Анализ выполнен'),
-                required_services=services,
-                severity=result.get('КРИТИЧНОСТЬ', 'medium').lower(),
+                comment=comment,
+                required_services=required_services,
+                severity=severity,
                 confidence=confidence,
-                reasoning=result.get('ОБОСНОВАНИЕ', '')
+                reasoning=reasoning
             )
             
         except Exception as e:
-            logger.error(f"Error parsing LLM response: {e}")
+            logger.error(f"Error parsing LLM response: {str(e)}")
             return LLMAnalysisResult(
-                comment="Ошибка анализа LLM",
-                required_services=["Юридическая служба"],
+                comment="Ошибка при разборе ответа LLM",
+                required_services=["Общий анализ"],
                 severity="medium",
-                confidence=0.3
-            ) 
+                confidence=0.1,
+                reasoning=f"Ошибка парсинга: {str(e)}"
+            )
+    
+    async def mock_analyze_change(self, change, regulations: List[Dict]) -> LLMAnalysisResult:
+        """Mock analysis for testing without API key"""
+        return LLMAnalysisResult(
+            comment="Обнаружено изменение в тексте документа",
+            required_services=["Юридический отдел", "Отдел качества"],
+            severity="medium",
+            confidence=0.8,
+            reasoning="Мок-анализ для тестирования"
+        ) 
