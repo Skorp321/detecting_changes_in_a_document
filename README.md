@@ -45,9 +45,364 @@ cp .env.example .env
 3. Запуск системы:
 ```bash
 docker compose up -d
+docker compose up -d
 ```
 
 4. Инициализация базы данных:
+```bash
+# База данных инициализируется автоматически при первом запуске
+docker compose logs postgres  # Проверить статус инициализации
+```
+
+5. Доступ к приложению:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API документация: http://localhost:8000/docs
+
+## Оптимизация производительности
+
+### Настройки Nginx
+
+Система использует оптимизированную конфигурацию Nginx с:
+- Brotli и Gzip сжатием для статических файлов
+- Предварительным сжатием файлов при сборке
+- Кэшированием статических ресурсов на 1 год
+- Security headers для защиты от XSS и других атак
+
+### Разделение JavaScript chunks
+
+Vite настроен для оптимального разделения кода:
+- `vendor` - основные React библиотеки
+- `antd` - компоненты UI
+- `pdf` - обработка PDF файлов
+- `utils` - утилитарные библиотеки (lodash, dayjs)
+- `ui` - дополнительные UI компоненты
+
+### Lazy Loading компонентов
+
+Основные компоненты загружаются по требованию:
+- DocumentUpload - загрузка документов
+- ResultsTable - таблица результатов
+- AnalysisButton - кнопка анализа
+
+## Мониторинг
+
+### Запуск системы мониторинга
+
+```bash
+# Запуск основной системы
+docker-compose up -d
+
+# Запуск мониторинга
+docker-compose -f monitoring/docker-compose.monitoring.yml up -d
+```
+
+### Доступ к мониторингу
+
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Alertmanager**: http://localhost:9093
+
+### Web Vitals метрики
+
+Система автоматически собирает Web Vitals метрики:
+- **LCP** (Largest Contentful Paint) - время загрузки основного контента
+- **FID** (First Input Delay) - время отклика на первое взаимодействие
+- **CLS** (Cumulative Layout Shift) - стабильность макета
+- **FCP** (First Contentful Paint) - время до первого контента
+- **TTFB** (Time to First Byte) - время до первого байта
+
+### Алерты
+
+Настроены алерты для:
+- Время отклика > 5 секунд
+- Недоступность сервисов > 2 минут
+- Высокая загрузка CPU > 80%
+- Высокое потребление памяти > 90%
+- Плохие Web Vitals метрики
+
+## Анализ производительности
+
+### Анализ размера bundle
+
+```bash
+cd frontend
+npm run analyze
+```
+
+### Тестирование производительности
+
+```bash
+# Запуск нагрузочного тестирования
+docker-compose exec backend python -m pytest tests/performance/ -v
+
+# Проверка Web Vitals
+# Откройте DevTools > Lighthouse > Generate report
+```
+
+### Мониторинг в реальном времени
+
+```bash
+# Логи системы
+docker-compose logs -f
+
+# Метрики из Prometheus
+curl http://localhost:9090/api/v1/query?query=up
+
+# Статус сервисов
+curl http://localhost:3000/health
+curl http://localhost:8000/api/health
+```
+
+## Troubleshooting
+
+### Проблемы с производительностью
+
+1. **Медленная загрузка страницы**:
+   - Проверьте сжатие файлов: `curl -H "Accept-Encoding: gzip,br" -I http://localhost:3000`
+   - Проверьте кэширование: headers должны содержать `Cache-Control: public, immutable`
+
+2. **Высокое потребление памяти**:
+   - Проверьте метрики в Grafana
+   - Перезапустите контейнеры: `docker-compose restart`
+
+3. **Медленный API**:
+   - Проверьте логи backend: `docker-compose logs backend`
+   - Проверьте соединение с БД: `docker-compose exec postgres pg_isready`
+
+### Проблемы с мониторингом
+
+1. **Prometheus не собирает метрики**:
+   - Проверьте статус targets: http://localhost:9090/targets
+   - Проверьте сетевую связность между контейнерами
+
+2. **Grafana не показывает данные**:
+   - Проверьте подключение к Prometheus в Data Sources
+   - Проверьте запросы в Query Inspector
+
+## Deployment
+
+### Production развертывание
+
+1. Обновите переменные окружения:
+```bash
+# .env
+VITE_ENABLE_WEB_VITALS=true
+POSTGRES_PASSWORD=secure_password
+# ... другие production настройки
+```
+
+2. Используйте production конфигурацию:
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+3. Настройте SSL/TLS:
+```bash
+# Добавьте reverse proxy с SSL
+# Например, с помощью Traefik или Nginx
+```
+
+### Автоматическое развертывание
+
+```bash
+# CI/CD pipeline пример
+#!/bin/bash
+docker-compose down
+docker-compose pull
+docker-compose up -d --build
+docker-compose exec backend python manage.py migrate
+```
+
+### Резервное копирование
+
+```bash
+# Backup базы данных
+docker-compose exec postgres pg_dump -U oozo_user oozo > backup.sql
+
+# Backup мониторинга
+docker-compose exec prometheus promtool tsdb snapshot /prometheus
+
+# Restore
+docker-compose exec postgres psql -U oozo_user oozo < backup.sql
+```
+```bash
+# База данных инициализируется автоматически при первом запуске
+docker compose logs postgres  # Проверить статус инициализации
+```
+
+5. Доступ к приложению:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API документация: http://localhost:8000/docs
+
+## Оптимизация производительности
+
+### Настройки Nginx
+
+Система использует оптимизированную конфигурацию Nginx с:
+- Brotli и Gzip сжатием для статических файлов
+- Предварительным сжатием файлов при сборке
+- Кэшированием статических ресурсов на 1 год
+- Security headers для защиты от XSS и других атак
+
+### Разделение JavaScript chunks
+
+Vite настроен для оптимального разделения кода:
+- `vendor` - основные React библиотеки
+- `antd` - компоненты UI
+- `pdf` - обработка PDF файлов
+- `utils` - утилитарные библиотеки (lodash, dayjs)
+- `ui` - дополнительные UI компоненты
+
+### Lazy Loading компонентов
+
+Основные компоненты загружаются по требованию:
+- DocumentUpload - загрузка документов
+- ResultsTable - таблица результатов
+- AnalysisButton - кнопка анализа
+
+## Мониторинг
+
+### Запуск системы мониторинга
+
+```bash
+# Запуск основной системы
+docker-compose up -d
+
+# Запуск мониторинга
+docker-compose -f monitoring/docker-compose.monitoring.yml up -d
+```
+
+### Доступ к мониторингу
+
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Alertmanager**: http://localhost:9093
+
+### Web Vitals метрики
+
+Система автоматически собирает Web Vitals метрики:
+- **LCP** (Largest Contentful Paint) - время загрузки основного контента
+- **FID** (First Input Delay) - время отклика на первое взаимодействие
+- **CLS** (Cumulative Layout Shift) - стабильность макета
+- **FCP** (First Contentful Paint) - время до первого контента
+- **TTFB** (Time to First Byte) - время до первого байта
+
+### Алерты
+
+Настроены алерты для:
+- Время отклика > 5 секунд
+- Недоступность сервисов > 2 минут
+- Высокая загрузка CPU > 80%
+- Высокое потребление памяти > 90%
+- Плохие Web Vitals метрики
+
+## Анализ производительности
+
+### Анализ размера bundle
+
+```bash
+cd frontend
+npm run analyze
+```
+
+### Тестирование производительности
+
+```bash
+# Запуск нагрузочного тестирования
+docker-compose exec backend python -m pytest tests/performance/ -v
+
+# Проверка Web Vitals
+# Откройте DevTools > Lighthouse > Generate report
+```
+
+### Мониторинг в реальном времени
+
+```bash
+# Логи системы
+docker-compose logs -f
+
+# Метрики из Prometheus
+curl http://localhost:9090/api/v1/query?query=up
+
+# Статус сервисов
+curl http://localhost:3000/health
+curl http://localhost:8000/api/health
+```
+
+## Troubleshooting
+
+### Проблемы с производительностью
+
+1. **Медленная загрузка страницы**:
+   - Проверьте сжатие файлов: `curl -H "Accept-Encoding: gzip,br" -I http://localhost:3000`
+   - Проверьте кэширование: headers должны содержать `Cache-Control: public, immutable`
+
+2. **Высокое потребление памяти**:
+   - Проверьте метрики в Grafana
+   - Перезапустите контейнеры: `docker-compose restart`
+
+3. **Медленный API**:
+   - Проверьте логи backend: `docker-compose logs backend`
+   - Проверьте соединение с БД: `docker-compose exec postgres pg_isready`
+
+### Проблемы с мониторингом
+
+1. **Prometheus не собирает метрики**:
+   - Проверьте статус targets: http://localhost:9090/targets
+   - Проверьте сетевую связность между контейнерами
+
+2. **Grafana не показывает данные**:
+   - Проверьте подключение к Prometheus в Data Sources
+   - Проверьте запросы в Query Inspector
+
+## Deployment
+
+### Production развертывание
+
+1. Обновите переменные окружения:
+```bash
+# .env
+VITE_ENABLE_WEB_VITALS=true
+POSTGRES_PASSWORD=secure_password
+# ... другие production настройки
+```
+
+2. Используйте production конфигурацию:
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+3. Настройте SSL/TLS:
+```bash
+# Добавьте reverse proxy с SSL
+# Например, с помощью Traefik или Nginx
+```
+
+### Автоматическое развертывание
+
+```bash
+# CI/CD pipeline пример
+#!/bin/bash
+docker compose down
+docker compose pull
+docker compose up -d --build
+docker compose exec backend python manage.py migrate
+```
+
+### Резервное копирование
+
+```bash
+# Backup базы данных
+docker compose exec postgres pg_dump -U oozo_user oozo > backup.sql
+
+# Backup мониторинга
+docker compose exec prometheus promtool tsdb snapshot /prometheus
+
+# Restore
+docker compose exec postgres psql -U oozo_user oozo < backup.sql
+```
 ```bash
 docker compose exec backend python -m app.database.init_db
 ```
@@ -164,7 +519,7 @@ oozo/
 
 1. Запуск только БД:
 ```bash
-docker-compose up -d postgres
+docker compose up -d postgres
 ```
 
 2. Запуск backend локально:
@@ -185,25 +540,25 @@ npm run dev
 
 ```bash
 # Запуск всех тестов
-docker-compose exec backend pytest
+docker compose exec backend pytest
 
 # Запуск конкретного теста
-docker-compose exec backend pytest tests/test_document_processor.py
+docker compose exec backend pytest tests/test_document_processor.py
 
 # Запуск с покрытием кода
-docker-compose exec backend pytest --cov=app
+docker compose exec backend pytest --cov=app
 ```
 
 ### Линтинг и форматирование
 
 ```bash
 # Backend
-docker-compose exec backend black app/
-docker-compose exec backend isort app/
+docker compose exec backend black app/
+docker compose exec backend isort app/
 
 # Frontend
-docker-compose exec frontend npm run lint
-docker-compose exec frontend npm run format
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run format
 ```
 
 ## Устранение неполадок
@@ -230,12 +585,12 @@ docker-compose exec frontend npm run format
 
 ```bash
 # Просмотр логов всех сервисов
-docker-compose logs -f
+docker compose logs -f
 
 # Логи конкретного сервиса
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f postgres
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f postgres
 ```
 
 ## Вклад в проект

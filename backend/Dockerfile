@@ -23,7 +23,7 @@ COPY . .
 RUN chmod +x /app/entrypoint.sh 2>/dev/null || true
 
 RUN mkdir -p /app/uploads /app/logs /app/temp && \
-    chown -R appuser:appuser /app/uploads /app/logs /app/temp
+    chown -R appuser:appuser /app/uploads /app/logs /app/temp /app
 
 USER appuser
 

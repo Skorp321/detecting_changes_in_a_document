@@ -231,4 +231,32 @@ async def health_check():
             "llm_analyzer": "running",
             "report_generator": "running"
         }
-    } 
+    }
+
+@router.post("/metrics")
+async def receive_web_vitals(request: dict):
+    """Receive Web Vitals metrics from frontend"""
+    try:
+        # Validate required fields
+        required_fields = ['name', 'value', 'rating', 'delta']
+        for field in required_fields:
+            if field not in request:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required field: {field}"
+                )
+        
+        # Log the metric for monitoring
+        logger.info(f"Web Vitals metric received: {request['name']}={request['value']}, rating={request['rating']}")
+        
+        # Here you could store metrics in database or send to monitoring system
+        # For now, we just log them
+        
+        return {"status": "success", "message": "Metric received"}
+    
+    except Exception as e:
+        logger.error(f"Error processing web vitals metric: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        ) 
