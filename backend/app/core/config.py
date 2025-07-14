@@ -28,9 +28,10 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
-    # OpenAI settings
+    # LLM settings - OpenAI compatible API
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
-    OPENAI_MODEL: str = Field("gpt-4", env="OPENAI_MODEL")
+    OPENAI_BASE_URL: str = Field("https://10f9698e-46b7-4a33-be37-f6495989f01f.modelrun.inference.cloud.ru", env="OPENAI_BASE_URL")
+    OPENAI_MODEL: str = Field("qwen3:32b", env="OPENAI_MODEL")
     OPENAI_TEMPERATURE: float = Field(0.3, env="OPENAI_TEMPERATURE")
     OPENAI_MAX_TOKENS: int = Field(2000, env="OPENAI_MAX_TOKENS")
     
@@ -59,12 +60,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field("your_secret_key_here_change_in_production", env="SECRET_KEY")
     ALGORITHM: str = Field("HS256", env="ALGORITHM")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
-    
-    # Redis settings (optional)
-    REDIS_HOST: str = Field("redis", env="REDIS_HOST")
-    REDIS_PORT: int = Field(6379, env="REDIS_PORT")
-    REDIS_PASSWORD: Optional[str] = Field(None, env="REDIS_PASSWORD")
-    REDIS_DB: int = Field(0, env="REDIS_DB")
     
     @property
     def REDIS_URL(self) -> str:
