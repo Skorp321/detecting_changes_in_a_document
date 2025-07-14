@@ -9,7 +9,7 @@ import {
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  baseURL: process.env.REACT_APP_API_URL || '/api',
   timeout: 300000, // 5 minutes for long document processing
   headers: {
     'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export const analyzeDocuments = async (
     formData.append('reference_doc', request.referenceDoc);
     formData.append('client_doc', request.clientDoc);
 
-    const response = await api.post('/api/compare', formData, {
+    const response = await api.post('/compare', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -98,7 +98,7 @@ export const exportResults = async (
   format: ExportFormat
 ): Promise<void> => {
   try {
-    const response = await api.post('/api/export', {
+    const response = await api.post('/export', {
       results,
       format,
     }, {
@@ -119,7 +119,7 @@ export const exportResults = async (
 
 export const getRegulations = async (): Promise<any[]> => {
   try {
-    const response = await api.get('/api/regulations');
+    const response = await api.get('/regulations');
     return response.data;
   } catch (error) {
     console.error('Error fetching regulations:', error);
@@ -129,7 +129,7 @@ export const getRegulations = async (): Promise<any[]> => {
 
 export const getServices = async (): Promise<any[]> => {
   try {
-    const response = await api.get('/api/services');
+    const response = await api.get('/services');
     return response.data;
   } catch (error) {
     console.error('Error fetching services:', error);
@@ -139,7 +139,7 @@ export const getServices = async (): Promise<any[]> => {
 
 export const healthCheck = async (): Promise<{ status: string }> => {
   try {
-    const response = await api.get('/api/health');
+    const response = await api.get('/health');
     return response.data;
   } catch (error) {
     console.error('Health check error:', error);

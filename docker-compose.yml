@@ -3,12 +3,12 @@ services:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${API_URL:-/api}
     ports:
       - "3000:80"
     depends_on:
       - backend
-    environment:
-      - REACT_APP_API_URL=${API_URL:-/api}
     networks:
       - app-network
     healthcheck:
@@ -41,7 +41,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-52428800}
     networks:
       - app-network
     healthcheck:
