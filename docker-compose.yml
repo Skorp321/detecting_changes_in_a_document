@@ -4,7 +4,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=${API_URL:-/api}
+        - REACT_APP_API_URL=/api
     ports:
       - "3000:80"
     depends_on:
@@ -35,7 +35,7 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-qwen3:32b}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://10f9698e-46b7-4a33-be37-f6495989f01f.modelrun.inference.cloud.ru}
       - ALLOWED_EXTENSIONS=pdf,docx,txt
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://95.31.20.57:3000,http://95.31.20.57,http://localhost}
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://95.31.20.57:3000,http://95.31.20.57,http://localhost
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}

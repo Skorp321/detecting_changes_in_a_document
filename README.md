@@ -44,12 +44,12 @@ cp .env.example .env
 
 3. Запуск системы:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 4. Инициализация базы данных:
 ```bash
-docker-compose exec backend python -m app.database.init_db
+docker compose exec backend python -m app.database.init_db
 ```
 
 ### Доступ к системе
