@@ -1,37 +1,43 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000,
-    host: true,
-    strictPort: true,
-    open: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
+  plugins: [
+    react(),
+  ],
   build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
           antd: ['antd'],
-          router: ['react-router-dom'],
+          pdf: ['react-pdf'],
+          utils: ['lodash', 'dayjs', 'file-saver'],
+          ui: ['styled-components', 'react-hot-toast'],
         },
       },
     },
+    chunkSizeWarningLimit: 1000,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    reportCompressedSize: false,
   },
-  preview: {
-    port: 3000,
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
+  server: {
     host: true,
+    port: 3000,
   },
-}); 
+}) 

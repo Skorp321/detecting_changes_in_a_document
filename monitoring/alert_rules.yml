@@ -1,0 +1,75 @@
+groups:
+  - name: oozo.rules
+    rules:
+      # Alerting rules for Oozo system
+      - alert: HighResponseTime
+        expr: http_request_duration_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.instance }}"
+          description: "Response time is above 5 seconds for {{ $labels.instance }}"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90% for {{ $labels.instance }}"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 85% for {{ $labels.instance }}"
+
+      - alert: WebVitalsHighLCP
+        expr: web_vitals_lcp > 4000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LCP on frontend"
+          description: "Largest Contentful Paint is above 4 seconds"
+
+      - alert: WebVitalsHighCLS
+        expr: web_vitals_cls > 0.25
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CLS on frontend"
+          description: "Cumulative Layout Shift is above 0.25"
+
+      - alert: WebVitalsHighFID
+        expr: web_vitals_fid > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High FID on frontend"
+          description: "First Input Delay is above 300ms" 
