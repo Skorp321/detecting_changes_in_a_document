@@ -27,7 +27,7 @@ class LLMAnalyzer:
             api_key=settings.OPENAI_API_KEY,
             base_url=settings.OPENAI_BASE_URL
         )
-        self.model = settings.OPENAI_MODEL
+        sel+0f.model = settings.OPENAI_MODEL
     
     async def analyze_change(self, change, regulations: List[Dict]) -> LLMAnalysisResult:
         """
@@ -139,6 +139,11 @@ class LLMAnalyzer:
                     required_services = [s.strip() for s in services_str.split(',') if s.strip()]
                 elif line.startswith('КРИТИЧНОСТЬ:'):
                     severity = line.replace('КРИТИЧНОСТЬ:', '').strip().lower()
+                    # Remove square brackets if present
+                    severity = severity.strip('[]')
+                    # Validate severity value
+                    if severity not in ['low', 'medium', 'high', 'critical']:
+                        severity = 'medium'  # default fallback
                 elif line.startswith('УВЕРЕННОСТЬ:'):
                     try:
                         confidence = float(line.replace('УВЕРЕННОСТЬ:', '').strip())

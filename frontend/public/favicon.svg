@@ -6,8 +6,4 @@
   <circle cx="24" cy="20" r="6" fill="#52c41a" stroke="#389e0d" stroke-width="1"/>
   <circle cx="24" cy="20" r="2" fill="none" stroke="#fff" stroke-width="1.5"/>
   <path d="M26 22l3 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-<<<<<<< HEAD
-</svg> 
-=======
 </svg>
->>>>>>> add_monitoring

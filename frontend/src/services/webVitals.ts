@@ -1,9 +1,9 @@
 // Заглушка для web-vitals, пока не установлена зависимость
-const getCLS = (callback: (metric: any) => void) => {}
-const getFID = (callback: (metric: any) => void) => {}
-const getFCP = (callback: (metric: any) => void) => {}
-const getLCP = (callback: (metric: any) => void) => {}
-const getTTFB = (callback: (metric: any) => void) => {}
+const getCLS = (_callback: (metric: any) => void) => {}
+const getFID = (_callback: (metric: any) => void) => {}
+const getFCP = (_callback: (metric: any) => void) => {}
+const getLCP = (_callback: (metric: any) => void) => {}
+const getTTFB = (_callback: (metric: any) => void) => {}
 
 interface WebVitalMetric {
   name: string
@@ -15,86 +15,89 @@ interface WebVitalMetric {
 // Функция для отправки метрик на backend
 const sendMetric = async (metric: WebVitalMetric) => {
   // Отправляем метрики только в production
-  if (import.meta.env?.MODE !== 'production') {
-    console.log('Web Vitals metric:', metric)
-    return
-  }
+  console.log('Web Vitals metric:', metric)
 
   try {
-    const response = await fetch('/api/metrics', {
+    const response = await fetch('/api/metrics/web-vitals', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(metric),
     })
-
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
   } catch (error) {
-    console.error('Failed to send Web Vitals metric:', error)
-    
-    // Retry логика - попытка отправки через 5 секунд
-    setTimeout(() => {
-      sendMetric(metric).catch(() => {
-        // Игнорируем ошибки при повторной попытке
-      })
-    }, 5000)
+    console.error('Failed to send metric:', error)
   }
 }
 
-// Функция для получения rating метрики
+// Функция для получения рейтинга метрики
 const getMetricRating = (name: string, value: number): 'good' | 'needs-improvement' | 'poor' => {
   const thresholds = {
-    CLS: [0.1, 0.25],
-    FID: [100, 300],
-    FCP: [1800, 3000],
-    LCP: [2500, 4000],
-    TTFB: [800, 1800],
+    CLS: { good: 0.1, poor: 0.25 },
+    FID: { good: 100, poor: 300 },
+    FCP: { good: 1800, poor: 3000 },
+    LCP: { good: 2500, poor: 4000 },
+    TTFB: { good: 800, poor: 1800 }
   }
-
-  const limits = thresholds[name as keyof typeof thresholds] || [0, 0]
-  const [good, poor] = limits
+  
+  const threshold = thresholds[name as keyof typeof thresholds]
+  if (!threshold) return 'good'
+  
+  const good = threshold.good || 0
+  const poor = threshold.poor || 0
   
   if (value <= good) return 'good'
   if (value <= poor) return 'needs-improvement'
   return 'poor'
 }
 
-// Функция для обработки метрики
-const handleMetric = (metric: any) => {
-  const webVitalMetric: WebVitalMetric = {
-    name: metric.name,
-    value: metric.value,
-    rating: getMetricRating(metric.name, metric.value),
-    delta: metric.delta,
-  }
-
-  sendMetric(webVitalMetric)
-}
-
-// Функция для инициализации мониторинга Web Vitals
+// Основная функция для инициализации Web Vitals
 export const initWebVitals = () => {
-  try {
-    getCLS(handleMetric)
-    getFID(handleMetric)
-    getFCP(handleMetric)
-    getLCP(handleMetric)
-    getTTFB(handleMetric)
-  } catch (error) {
-    console.error('Failed to initialize Web Vitals:', error)
+  const handleMetric = (metric: any) => {
+    const webVitalMetric: WebVitalMetric = {
+      name: metric.name,
+      value: metric.value,
+      rating: getMetricRating(metric.name, metric.value),
+      delta: metric.delta
+    }
+    
+    sendMetric(webVitalMetric)
   }
+
+  // Инициализируем метрики
+  getCLS(handleMetric)
+  getFID(handleMetric)
+  getFCP(handleMetric)
+  getLCP(handleMetric)
+  getTTFB(handleMetric)
 }
 
-// Функция для отправки кастомных метрик
-export const reportCustomMetric = (name: string, value: number) => {
+// Функция для отправки пользовательских метрик
+export const sendCustomMetric = (name: string, value: number) => {
   const metric: WebVitalMetric = {
-    name,
+    name: `custom_${name}`,
     value,
-    rating: 'good', // Для кастомных метрик используем 'good' по умолчанию
-    delta: value,
+    rating: 'good',
+    delta: 0
   }
-
+  
   sendMetric(metric)
-} 
+}
+
+// Функция для измерения времени загрузки компонентов
+export const measureComponentLoad = (componentName: string, startTime: number) => {
+  const loadTime = performance.now() - startTime
+  sendCustomMetric(`component_load_${componentName}`, loadTime)
+}
+
+// Функция для измерения времени API запросов
+export const measureApiCall = (endpoint: string, startTime: number) => {
+  const duration = performance.now() - startTime
+  sendCustomMetric(`api_call_${endpoint.replace(/[^a-zA-Z0-9]/g, '_')}`, duration)
+}
+
+export default initWebVitals 

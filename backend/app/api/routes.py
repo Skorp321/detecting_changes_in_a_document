@@ -14,6 +14,7 @@ from app.services.diff_analyzer import DiffAnalyzer
 from app.services.regulatory_matcher import RegulatoryMatcher
 from app.services.llm_analyzer import LLMAnalyzer
 from app.services.report_generator import ReportGenerator
+from app.services.metrics import metrics_service
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -233,7 +234,19 @@ async def health_check():
         }
     }
 
-@router.post("/metrics")
+@router.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus metrics endpoint"""
+    from fastapi.responses import Response
+    
+    try:
+        metrics_data = metrics_service.get_metrics()
+        return Response(content=metrics_data, media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error generating metrics: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении метрик")
+
+@router.post("/metrics/web-vitals")
 async def receive_web_vitals(request: dict):
     """Receive Web Vitals metrics from frontend"""
     try:
@@ -245,6 +258,9 @@ async def receive_web_vitals(request: dict):
                     status_code=400,
                     detail=f"Missing required field: {field}"
                 )
+        
+        # Record the metric
+        metrics_service.record_web_vitals(request['name'], request['value'])
         
         # Log the metric for monitoring
         logger.info(f"Web Vitals metric received: {request['name']}={request['value']}, rating={request['rating']}")
