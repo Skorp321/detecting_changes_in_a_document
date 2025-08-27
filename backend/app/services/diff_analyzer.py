@@ -16,8 +16,8 @@ class DiffChange:
     position: int
     text: str
     context: str = ""
-    highlighted_original: str = ""  # Оригинальный текст с подсветкой
-    highlighted_modified: str = ""  # Измененный текст с подсветкой
+    highlighted_original: str = ""  # Редакция СБЛ с подсветкой
+    highlighted_modified: str = ""  # Редакция лизингополучателя с подсветкой
     
 
 class DiffAnalyzer:

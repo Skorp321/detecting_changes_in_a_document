@@ -188,7 +188,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
 
   const columns = [
     {
-      title: 'Оригинальный текст',
+              title: 'Редакция СБЛ',
       dataIndex: 'originalText',
       key: 'originalText',
       width: '25%',
@@ -204,7 +204,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       ),
     },
     {
-      title: 'Измененный текст',
+              title: 'Редакция лизингополучателя',
       dataIndex: 'modifiedText',
       key: 'modifiedText',
       width: '25%',
@@ -375,14 +375,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <Text strong>Оригинальный текст:</Text>
+              <Text strong>Редакция СБЛ:</Text>
               <Paragraph style={{ background: '#f5f5f5', padding: 8, marginTop: 8 }}>
                 {selectedResult.originalText}
               </Paragraph>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <Text strong>Измененный текст:</Text>
+              <Text strong>Редакция лизингополучателя:</Text>
               <Paragraph style={{ background: '#f0f8ff', padding: 8, marginTop: 8 }}>
                 {selectedResult.modifiedText}
               </Paragraph>

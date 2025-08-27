@@ -3,6 +3,7 @@ import csv
 import io
 from typing import List, Dict, Any
 from datetime import datetime
+from app.schemas.analysis import AnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class ReportGenerator:
     def __init__(self):
         pass
     
-    async def generate_report(self, results: List[Dict], format: str) -> io.BytesIO:
+    async def generate_report(self, results: List[AnalysisResult], format: str) -> io.BytesIO:
         """Generate report in specified format"""
         try:
             if format == "csv":
@@ -29,7 +30,7 @@ class ReportGenerator:
             logger.error(f"Error generating report: {e}")
             raise
     
-    async def _generate_csv(self, results: List[Dict]) -> io.BytesIO:
+    async def _generate_csv(self, results: List[AnalysisResult]) -> io.BytesIO:
         """Generate CSV report"""
         output = io.BytesIO()
         
@@ -37,8 +38,8 @@ class ReportGenerator:
         csv_buffer = io.StringIO()
         
         fieldnames = [
-            'Оригинальный текст',
-            'Измененный текст', 
+            'Редакция СБЛ',
+            'Редакция лизингополучателя', 
             'Комментарии LLM',
             'Необходимые согласования',
             'Тип изменения',
@@ -52,14 +53,14 @@ class ReportGenerator:
         
         for result in results:
             writer.writerow({
-                'Оригинальный текст': result.get('originalText', ''),
-                'Измененный текст': result.get('modifiedText', ''),
-                'Комментарии LLM': result.get('llmComment', ''),
-                'Необходимые согласования': ', '.join(result.get('requiredServices', [])),
-                'Тип изменения': result.get('changeType', ''),
-                'Критичность': result.get('severity', ''),
-                'Уверенность': result.get('confidence', ''),
-                'Дата создания': result.get('createdAt', '')
+                'Редакция СБЛ': result.originalText,
+                'Редакция лизингополучателя': result.modifiedText,
+                'Комментарии LLM': result.llmComment,
+                'Необходимые согласования': ', '.join(result.requiredServices),
+                'Тип изменения': result.changeType,
+                'Критичность': result.severity,
+                'Уверенность': result.confidence,
+                'Дата создания': result.createdAt
             })
         
         # Convert to bytes
@@ -69,38 +70,38 @@ class ReportGenerator:
         
         return output
     
-    async def _generate_pdf(self, results: List[Dict]) -> io.BytesIO:
+    async def _generate_pdf(self, results: List[AnalysisResult]) -> io.BytesIO:
         """Generate PDF report - placeholder implementation"""
         # For now, return a simple text-based PDF placeholder
         output = io.BytesIO()
         
         content = f"""ОТЧЕТ ОБ АНАЛИЗЕ ИЗМЕНЕНИЙ В ДОКУМЕНТАХ
 
-                    Дата генерации: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
-                    Количество изменений: {len(results)}
+Дата генерации: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+Количество изменений: {len(results)}
 
-                    {"="*60}
+{"="*60}
 
-                    """
+"""
         
         for i, result in enumerate(results, 1):
             content += f"""
-                        ИЗМЕНЕНИЕ {i}
-                        {"-"*20}
-                        Оригинальный текст: {result.get('originalText', '')[:100]}...
-                        Измененный текст: {result.get('modifiedText', '')[:100]}...
-                        Комментарий: {result.get('llmComment', '')}
-                        Необходимые согласования: {', '.join(result.get('requiredServices', []))}
-                        Критичность: {result.get('severity', '')}
+ИЗМЕНЕНИЕ {i}
+{"-"*20}
+Редакция СБЛ: {result.originalText[:100]}...
+Редакция лизингополучателя: {result.modifiedText[:100]}...
+Комментарий: {result.llmComment}
+Необходимые согласования: {', '.join(result.requiredServices)}
+Критичность: {result.severity}
 
-                        """
+"""
         
         output.write(content.encode('utf-8'))
         output.seek(0)
         
         return output
     
-    async def _generate_word(self, results: List[Dict]) -> io.BytesIO:
+    async def _generate_word(self, results: List[AnalysisResult]) -> io.BytesIO:
         """Generate Word document report"""
         try:
             from docx import Document
@@ -123,18 +124,18 @@ class ReportGenerator:
             
             # Header row
             hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = 'Оригинальный текст'
-            hdr_cells[1].text = 'Измененный текст'
+            hdr_cells[0].text = 'Редакция СБЛ'
+            hdr_cells[1].text = 'Редакция лизингополучателя'
             hdr_cells[2].text = 'Комментарии'
             hdr_cells[3].text = 'Согласования'
             
             # Data rows
             for result in results:
                 row_cells = table.add_row().cells
-                row_cells[0].text = result.get('originalText', '')[:200] + ('...' if len(result.get('originalText', '')) > 200 else '')
-                row_cells[1].text = result.get('modifiedText', '')[:200] + ('...' if len(result.get('modifiedText', '')) > 200 else '')
-                row_cells[2].text = result.get('llmComment', '')
-                row_cells[3].text = ', '.join(result.get('requiredServices', []))
+                row_cells[0].text = result.originalText[:200] + ('...' if len(result.originalText) > 200 else '')
+                row_cells[1].text = result.modifiedText[:200] + ('...' if len(result.modifiedText) > 200 else '')
+                row_cells[2].text = result.llmComment
+                row_cells[3].text = ', '.join(result.requiredServices)
             
             # Save to BytesIO
             output = io.BytesIO()

@@ -1,0 +1,107 @@
+{
+  "base_url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru",
+  "health": null,
+  "endpoints": {
+    "/": {
+      "status_code": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 17,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/"
+    },
+    "/health": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/health"
+    },
+    "/health/": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/health/"
+    },
+    "/docs": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/docs"
+    },
+    "/redoc": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/redoc"
+    },
+    "/openapi.json": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/openapi.json"
+    },
+    "/api/v1/": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/api/v1/"
+    },
+    "/api/": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/api/"
+    },
+    "/status": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/status"
+    },
+    "/ping": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/ping"
+    },
+    "/ready": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/ready"
+    },
+    "/live": {
+      "status_code": 404,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 18,
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/live"
+    },
+    "/compare": {
+      "get_status": 404,
+      "get_content_type": "text/plain; charset=utf-8",
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/compare"
+    },
+    "/export": {
+      "get_status": 404,
+      "get_content_type": "text/plain; charset=utf-8",
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/export"
+    },
+    "/regulations": {
+      "get_status": 404,
+      "get_content_type": "text/plain; charset=utf-8",
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/regulations"
+    },
+    "/services": {
+      "get_status": 404,
+      "get_content_type": "text/plain; charset=utf-8",
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/services"
+    },
+    "/status/{id}": {
+      "get_status": 404,
+      "get_content_type": "text/plain; charset=utf-8",
+      "url": "https://39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru/status/test-123"
+    }
+  },
+  "openapi_docs": null,
+  "errors": [
+    "Ошибка при проверке базового URL: HTTPSConnectionPool(host='39d33ac4-dd56-435e-9f77-ad8ba6b87376.modelrun.inference.cloud.ru', port=443): Read timed out. (read timeout=10)"
+  ]
+}

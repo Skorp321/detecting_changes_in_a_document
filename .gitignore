@@ -5,3 +5,5 @@ data
 logs
 uploads
 tests
+stenv
+monitoring
