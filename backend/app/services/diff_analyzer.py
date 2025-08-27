@@ -39,6 +39,76 @@ class DiffAnalyzer:
         
         return sentences
     
+    def _split_into_subparagraphs(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Разделяет текст на подпункты (от цифры с номером подпункта до следующей цифры)
+        Возвращает список словарей с информацией о подпунктах
+        """
+        if not text:
+            return []
+        
+        # Паттерн для поиска подпунктов: цифра с точкой или скобкой в начале строки
+        # Поддерживаем различные форматы: 1., 1), 1.1., 1.1), и т.д.
+        # Также поддерживаем римские цифры и буквы: I., II., a), б), и т.д.
+        subparagraph_pattern = r'^([0-9]+(?:\.\d+)*[\.\)]|[IVX]+[\.\)]|[а-яё][\.\)]|[a-z][\.\)])\s*(.*?)(?=\n\s*([0-9]+(?:\.\d+)*[\.\)]|[IVX]+[\.\)]|[а-яё][\.\)]|[a-z][\.\)])|\Z)'
+        
+        # Ищем все подпункты в тексте
+        matches = list(re.finditer(subparagraph_pattern, text, re.MULTILINE | re.DOTALL))
+        
+        subparagraphs = []
+        
+        if matches:
+            for i, match in enumerate(matches):
+                number = match.group(1)
+                content = match.group(2).strip()
+                
+                # Определяем границы подпункта
+                start_pos = match.start()
+                if i < len(matches) - 1:
+                    end_pos = matches[i + 1].start()
+                else:
+                    end_pos = len(text)
+                
+                full_subparagraph = text[start_pos:end_pos].strip()
+                
+                subparagraphs.append({
+                    'number': number,
+                    'content': content,
+                    'full_text': full_subparagraph,
+                    'start_pos': start_pos,
+                    'end_pos': end_pos
+                })
+        else:
+            # Если подпункты не найдены, разбиваем на предложения
+            sentences = self._split_into_sentences(text)
+            for i, sentence in enumerate(sentences):
+                subparagraphs.append({
+                    'number': f"{i+1}.",
+                    'content': sentence,
+                    'full_text': sentence,
+                    'start_pos': 0,
+                    'end_pos': len(sentence)
+                })
+        
+        return subparagraphs
+    
+    def _find_subparagraph_for_position(self, subparagraphs: List[Dict[str, Any]], position: int) -> Dict[str, Any]:
+        """
+        Находит подпункт, в котором находится указанная позиция
+        """
+        for subpara in subparagraphs:
+            if subpara['start_pos'] <= position < subpara['end_pos']:
+                return subpara
+        
+        # Если не найден, ищем ближайший подпункт
+        if subparagraphs:
+            # Находим подпункт с наименьшим расстоянием до позиции
+            closest_subpara = min(subparagraphs, key=lambda x: abs(x['start_pos'] - position))
+            return closest_subpara
+        
+        # Если подпунктов нет, возвращаем пустой
+        return {'number': '1.', 'content': '', 'full_text': ''}
+    
     def _highlight_differences(self, text1: str, text2: str) -> Tuple[str, str]:
         """Подсвечивает различия между двумя текстами"""
         if not text1 and not text2:
@@ -85,155 +155,132 @@ class DiffAnalyzer:
     async def analyze_differences(self, reference_text: Dict, client_text: Dict) -> List[DiffChange]:
         """Analyze differences between two document texts"""
         try:
-            # Работаем с параграфами, но анализируем на уровне предложений
-            ref_paragraphs = reference_text.get('paragraphs', [])
-            client_paragraphs = client_text.get('paragraphs', [])
+            # Всегда работаем с полным текстом и разбиваем его на подпункты
+            ref_text = reference_text.get('text', '')
+            client_text_raw = client_text.get('text', '')
             
-            logger.info(f"Reference paragraphs: {len(ref_paragraphs)}")
-            logger.info(f"Client paragraphs: {len(client_paragraphs)}")
+            logger.info(f"Reference text length: {len(ref_text)}")
+            logger.info(f"Client text length: {len(client_text_raw)}")
             
-            changes = []
+            # Разделяем на подпункты
+            ref_subparagraphs = self._split_into_subparagraphs(ref_text)
+            client_subparagraphs = self._split_into_subparagraphs(client_text_raw)
             
-            # Если нет параграфов, работаем с полным текстом
-            if not ref_paragraphs or not client_paragraphs:
-                ref_text = reference_text.get('text', '')
-                client_text_raw = client_text.get('text', '')
-                
-                # Разделяем на предложения
-                ref_sentences = self._split_into_sentences(ref_text)
-                client_sentences = self._split_into_sentences(client_text_raw)
-                
-                # Сравниваем предложения
-                changes.extend(self._compare_sentences(ref_sentences, client_sentences, "Документ"))
-                
-                return changes
+            logger.info(f"Reference subparagraphs: {len(ref_subparagraphs)}")
+            logger.info(f"Client subparagraphs: {len(client_subparagraphs)}")
             
-            # Анализируем каждый параграф отдельно
-            max_paragraphs = max(len(ref_paragraphs), len(client_paragraphs))
+            # Сравниваем подпункты целиком
+            changes = self._compare_subparagraphs(
+                ref_subparagraphs, client_subparagraphs, "Документ"
+            )
             
-            for para_idx in range(max_paragraphs):
-                ref_para = ref_paragraphs[para_idx] if para_idx < len(ref_paragraphs) else ""
-                client_para = client_paragraphs[para_idx] if para_idx < len(client_paragraphs) else ""
-                
-                # Пропускаем одинаковые параграфы
-                ref_para_norm = ' '.join(ref_para.split()) if ref_para else ""
-                client_para_norm = ' '.join(client_para.split()) if client_para else ""
-                
-                if ref_para_norm == client_para_norm:
-                    continue
-                
-                # Разделяем параграфы на предложения
-                ref_sentences = self._split_into_sentences(ref_para)
-                client_sentences = self._split_into_sentences(client_para)
-                
-                # Сравниваем предложения внутри параграфа
-                para_changes = self._compare_sentences(
-                    ref_sentences, 
-                    client_sentences, 
-                    f"Параграф {para_idx + 1}"
-                )
-                changes.extend(para_changes)
-            
-            logger.info(f"Found {len(changes)} sentence-level changes")
+            logger.info(f"Found {len(changes)} subparagraph-level changes")
             return changes
             
         except Exception as e:
             logger.error(f"Error analyzing differences: {e}")
             return []
     
-    def _compare_sentences(self, ref_sentences: List[str], client_sentences: List[str], context: str) -> List[DiffChange]:
-        """Сравнивает предложения и возвращает изменения"""
+    def _compare_subparagraphs(self, ref_subparagraphs: List[Dict[str, Any]], 
+                              client_subparagraphs: List[Dict[str, Any]], 
+                              context: str) -> List[DiffChange]:
+        """Сравнивает подпункты целиком и возвращает изменения"""
         changes = []
         
-        # Используем difflib для сравнения списков предложений
-        self.sequence_matcher.set_seqs(ref_sentences, client_sentences)
+        # Создаем списки текстов подпунктов для сравнения
+        ref_texts = [subpara['full_text'] for subpara in ref_subparagraphs]
+        client_texts = [subpara['full_text'] for subpara in client_subparagraphs]
+        
+        # Используем difflib для сравнения списков подпунктов
+        self.sequence_matcher.set_seqs(ref_texts, client_texts)
         opcodes = self.sequence_matcher.get_opcodes()
         
         for tag, i1, i2, j1, j2 in opcodes:
             if tag == 'equal':
-                # Одинаковые предложения - пропускаем
+                # Одинаковые подпункты - пропускаем
                 continue
             elif tag == 'delete':
-                # Удаленные предложения
+                # Удаленные подпункты
                 for i in range(i1, i2):
-                    sentence = ref_sentences[i]
+                    subpara = ref_subparagraphs[i]
+                    
                     change = DiffChange(
-                        original_text=sentence,
+                        original_text=subpara['full_text'],  # Полный текст подпункта с номером
                         modified_text="",
                         change_type="deletion",
                         position=i,
-                        text=sentence,
-                        context=f"{context}, предложение {i+1}",
-                        highlighted_original=f"[-]{sentence}[/-]",
+                        text=subpara['full_text'],
+                        context=f"{context}, подпункт {subpara['number']}",
+                        highlighted_original=f"[-]{subpara['full_text']}[/-]",
                         highlighted_modified=""
                     )
                     changes.append(change)
             elif tag == 'insert':
-                # Добавленные предложения
+                # Добавленные подпункты
                 for j in range(j1, j2):
-                    sentence = client_sentences[j]
+                    subpara = client_subparagraphs[j]
+                    
                     change = DiffChange(
                         original_text="",
-                        modified_text=sentence,
+                        modified_text=subpara['full_text'],  # Полный текст подпункта с номером
                         change_type="addition",
                         position=j,
-                        text=sentence,
-                        context=f"{context}, предложение {j+1}",
+                        text=subpara['full_text'],
+                        context=f"{context}, подпункт {subpara['number']}",
                         highlighted_original="",
-                        highlighted_modified=f"[+]{sentence}[/+]"
+                        highlighted_modified=f"[+]{subpara['full_text']}[/+]"
                     )
                     changes.append(change)
             elif tag == 'replace':
-                # Замененные предложения
+                # Замененные подпункты
                 # Берем более длинный диапазон для сравнения
                 max_range = max(i2 - i1, j2 - j1)
                 
                 for idx in range(max_range):
-                    ref_sentence = ref_sentences[i1 + idx] if (i1 + idx) < i2 else ""
-                    client_sentence = client_sentences[j1 + idx] if (j1 + idx) < j2 else ""
+                    ref_subpara = ref_subparagraphs[i1 + idx] if (i1 + idx) < i2 else None
+                    client_subpara = client_subparagraphs[j1 + idx] if (j1 + idx) < j2 else None
                     
-                    if ref_sentence == client_sentence:
-                        continue
-                    
-                    if ref_sentence and client_sentence:
-                        # Модификация предложения
-                        highlighted_orig, highlighted_mod = self._highlight_differences(ref_sentence, client_sentence)
+                    if ref_subpara and client_subpara:
+                        # Модификация подпункта
+                        highlighted_orig, highlighted_mod = self._highlight_differences(
+                            ref_subpara['full_text'], client_subpara['full_text']  # Полный текст с номером
+                        )
                         
                         change = DiffChange(
-                            original_text=ref_sentence,
-                            modified_text=client_sentence,
+                            original_text=ref_subpara['full_text'],  # Полный текст подпункта с номером
+                            modified_text=client_subpara['full_text'],
                             change_type="modification",
                             position=i1 + idx,
-                            text=client_sentence,
-                            context=f"{context}, предложение {i1 + idx + 1}",
+                            text=client_subpara['full_text'],
+                            context=f"{context}, подпункт {ref_subpara['number']}",
                             highlighted_original=highlighted_orig,
                             highlighted_modified=highlighted_mod
                         )
                         changes.append(change)
-                    elif ref_sentence:
-                        # Удаление
+                    elif ref_subpara:
+                        # Удаление подпункта
                         change = DiffChange(
-                            original_text=ref_sentence,
+                            original_text=ref_subpara['full_text'],  # Полный текст подпункта с номером
                             modified_text="",
                             change_type="deletion",
                             position=i1 + idx,
-                            text=ref_sentence,
-                            context=f"{context}, предложение {i1 + idx + 1}",
-                            highlighted_original=f"[-]{ref_sentence}[/-]",
+                            text=ref_subpara['full_text'],
+                            context=f"{context}, подпункт {ref_subpara['number']}",
+                            highlighted_original=f"[-]{ref_subpara['full_text']}[/-]",
                             highlighted_modified=""
                         )
                         changes.append(change)
-                    elif client_sentence:
-                        # Добавление
+                    elif client_subpara:
+                        # Добавление подпункта
                         change = DiffChange(
                             original_text="",
-                            modified_text=client_sentence,
+                            modified_text=client_subpara['full_text'],  # Полный текст подпункта с номером
                             change_type="addition",
                             position=j1 + idx,
-                            text=client_sentence,
-                            context=f"{context}, предложение {j1 + idx + 1}",
+                            text=client_subpara['full_text'],
+                            context=f"{context}, подпункт {client_subpara['number']}",
                             highlighted_original="",
-                            highlighted_modified=f"[+]{client_sentence}[/+]"
+                            highlighted_modified=f"[+]{client_subpara['full_text']}[/+]"
                         )
                         changes.append(change)
         
