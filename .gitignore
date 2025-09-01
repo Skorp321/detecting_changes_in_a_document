@@ -7,3 +7,5 @@ uploads
 tests
 stenv
 monitoring
+backend/app/__pycache__
+*.__pycache__

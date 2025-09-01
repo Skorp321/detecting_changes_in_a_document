@@ -31,3 +31,4 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 # Команда запуска
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 
+

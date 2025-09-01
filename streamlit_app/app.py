@@ -246,12 +246,12 @@ def display_results():
         modified_markdown = re.sub(r"\[-\](.*?)\[/-\]", r"**\1**", highlighted_modified)
         modified_markdown = re.sub(r"\[\+\](.*?)\[/\+\]", r"**\1**", modified_markdown)
 
-        # Создаем HTML для служб в виде кнопок
+        # Создаем HTML для служб с отметками от нейросети
         services = change.get("requiredServices", [])
         if services:
-            services_text = ", ".join(services)
+            services_text = ", ".join([f"{service}" for service in services])
         else:
-            services_text = "Не указаны"
+            services_text = "⚠️ Не указаны"
 
         df_data.append(
             {
@@ -316,7 +316,7 @@ def display_results():
             st.markdown(comparison_html, unsafe_allow_html=True)
 
             # Анализ ИИ
-            st.markdown("**🤖 Анализ ИИ:**")
+            st.markdown("**🤖 Анализ Ассистента:**")
             st.info(change.get("llmComment", "N/A"))
 
             # Метаданные и службы согласования
@@ -325,39 +325,79 @@ def display_results():
             with col3:
                 st.markdown("**🏢 Службы согласования:**")
 
-                # Стандартные службы
+                # Стандартные службы с описаниями
                 standard_services = [
                     "ЮрУ",
-                    "ДСКБ",
+                    "ДСКБ", 
                     "ПА",
                     "ФС",
                     "УСДС",
                     "РД/УБУ",
                     "КД",
                 ]
+                
+                service_descriptions = {
+                    "ЮрУ": "Юридическое управление",
+                    "ДСКБ": "Департамент скоринга и кредитного бизнеса",
+                    "ПА": "Правовой анализ",
+                    "ФС": "Финансовая служба",
+                    "УСДС": "Управление стратегического развития и стандартизации",
+                    "РД/УБУ": "Риск-департамент/Управление бизнес-услуг",
+                    "КД": "Кредитный департамент"
+                }
+                
                 current_services = change.get("requiredServices", [])
 
-                # Создаем чекбоксы для каждой службы
+                # Создаем чекбоксы для каждой службы с автоматической отметкой
                 selected_change_services = []
+                
                 for service in standard_services:
                     is_selected = service in current_services
+                    description = service_descriptions.get(service, service)
+                    
+                    # Создаем уникальный ключ для каждого чекбокса
+                    checkbox_key = f"change_{i}_{service}_{change.get('id', i)}"
+                    
                     if st.checkbox(
-                        f"{'✅' if is_selected else '⬜'} {service}",
+                        f"{service} - {description}",
                         value=is_selected,
-                        key=f"change_{i}_{service}",
+                        key=checkbox_key,
+                        help=f"Автоматически отмечено нейросетью: {'Да' if is_selected else 'Нет'}"
                     ):
                         selected_change_services.append(service)
+                
+                # Показываем статус автоматического выбора
+                if current_services:
+                    st.success(f"✅ Ассистент рекомендует {len(current_services)} служб для согласования")
+                    st.markdown(f"**Автоматически выбрано:** {', '.join(current_services)}")
+                else:
+                    st.warning("⚠️ Ассистент не определил необходимые службы")
 
             with col4:
                 st.markdown("**📊 Метаданные:**")
                 st.markdown(f"• **Тип изменения:** {change.get('changeType', 'N/A')}")
                 st.markdown(f"• **Серьезность:** {change.get('severity', 'N/A')}")
-                st.markdown(f"• **Уверенность:** {change.get('confidence', 0):.1f}%")
+                st.markdown(f"• **Уверенность:** {(change.get('confidence', 0) * 100):.1f}%")
                 st.markdown(f"• **Дата:** {change.get('createdAt', 'N/A')}")
 
                 # Показываем выбранные службы для этого изменения
                 if selected_change_services:
                     st.markdown(f"**Выбрано:** {', '.join(selected_change_services)}")
+                
+                # Уровень уверенности нейросети в выборе служб
+                service_confidence = change.get("serviceConfidence", 0)
+                if service_confidence > 0:
+                    st.markdown(f"**🎯 Уверенность ассистента в выборе служб:** {service_confidence:.1f}%")
+                    
+                    # Прогресс-бар для уверенности
+                    st.progress(service_confidence / 100)
+                    
+                    if service_confidence < 50:
+                        st.warning("⚠️ Низкая уверенность - рекомендуется ручная проверка")
+                    elif service_confidence < 80:
+                        st.info("ℹ️ Средняя уверенность - рекомендуется дополнительная проверка")
+                    else:
+                        st.success("✅ Высокая уверенность в выборе служб")
 
             # Разделитель между изменениями
             st.markdown("---")

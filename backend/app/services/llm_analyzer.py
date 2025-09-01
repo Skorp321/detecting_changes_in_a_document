@@ -96,9 +96,16 @@ class LLMAnalyzer:
         """Create analysis prompt for LLM"""
         original_text = getattr(change, 'original_text', '')
         modified_text = getattr(change, 'modified_text', '')
+        context = getattr(change, 'context', '')
+        
+        # Извлекаем информацию о подпункте из контекста
+        subparagraph_info = ""
+        if "подпункт" in context:
+            subparagraph_info = f"\nКОНТЕКСТ ИЗМЕНЕНИЯ: {context}"
         
         prompt = f"""
             Проанализируйте изменение в документе и определите необходимые согласования.
+            {subparagraph_info}
 
             ИСХОДНЫЙ ТЕКСТ:
             {original_text}
