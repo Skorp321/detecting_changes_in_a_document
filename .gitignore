@@ -12,3 +12,6 @@ backend/app/core/__pycache__
 backend/app/services/__pycache__
 *.__pycache__
 .kiro
+.pytest_cache
+.qodo
+db
