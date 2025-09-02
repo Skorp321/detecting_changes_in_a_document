@@ -8,4 +8,7 @@ tests
 stenv
 monitoring
 backend/app/__pycache__
+backend/app/core/__pycache__
+backend/app/services/__pycache__
 *.__pycache__
+.kiro
