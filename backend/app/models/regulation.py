@@ -1,72 +1,34 @@
-from sqlalchemy import Column, String, Text, DateTime, Integer, Boolean, Index
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from datetime import datetime
 import uuid
 
-from app.database.connection import Base
 
-
-class Regulation(Base):
+class Regulation(BaseModel):
     """Regulation model for storing regulatory documents"""
     
-    __tablename__ = "regulations"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title = Column(String(500), nullable=False, index=True)
-    content = Column(Text, nullable=False)
-    category = Column(String(100), nullable=False, index=True)
-    
-    # Full-text search column
-    search_vector = Column(TSVECTOR)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str = Field(..., max_length=500)
+    content: str
+    category: str = Field(..., max_length=100)
     
     # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at: Optional[datetime] = Field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = None
     
     # Status fields
-    active = Column(Boolean, default=True)
-    version = Column(Integer, default=1)
+    active: bool = True
+    version: int = 1
     
     # Additional metadata
-    author = Column(String(100), nullable=True)
-    source = Column(String(200), nullable=True)
-    effective_date = Column(DateTime(timezone=True), nullable=True)
-    
-    # Create full-text search index
-    __table_args__ = (
-        Index(
-            'ix_regulations_search',
-            search_vector,
-            postgresql_using='gin'
-        ),
-        Index(
-            'ix_regulations_category_active',
-            'category',
-            'active'
-        ),
-        Index(
-            'ix_regulations_created_at',
-            'created_at'
-        ),
-    )
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.update_search_vector()
-    
-    def update_search_vector(self):
-        """Update the search vector when content changes"""
-        if self.title and self.content:
-            # This would be handled by a PostgreSQL trigger in production
-            # For now, we'll set it to None and let the database handle it
-            pass
+    author: Optional[str] = Field(None, max_length=100)
+    source: Optional[str] = Field(None, max_length=200)
+    effective_date: Optional[datetime] = None
     
     def to_dict(self):
         """Convert model to dictionary"""
         return {
-            'id': str(self.id),
+            'id': self.id,
             'title': self.title,
             'content': self.content,
             'category': self.category,
@@ -89,6 +51,8 @@ class Regulation(Base):
             'technical': ['Техническая служба'],
             'financial': ['Финансовая служба'],
             'security': ['Служба безопасности'],
+            'safety': ['Служба безопасности'],
+            'environmental': ['Служба экологии'],
         }
         return service_mapping.get(self.category.lower(), ['Юридическая служба'])
     

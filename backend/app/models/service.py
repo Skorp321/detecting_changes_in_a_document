@@ -1,40 +1,29 @@
-from sqlalchemy import Column, String, Text, DateTime, Boolean, Index
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime
 import uuid
 
-from app.database.connection import Base
 
-
-class Service(Base):
+class Service(BaseModel):
     """Service model for storing approval services/departments"""
     
-    __tablename__ = "services"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(200), nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    contact_info = Column(Text, nullable=True)
-    approval_type = Column(String(50), default='required', nullable=False)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = Field(..., max_length=200)
+    description: Optional[str] = None
+    contact_info: Optional[str] = None
+    approval_type: str = Field(default='required', max_length=50)
     
     # Status fields
-    active = Column(Boolean, default=True, nullable=False)
+    active: bool = True
     
     # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Create indexes
-    __table_args__ = (
-        Index('ix_services_name_active', 'name', 'active'),
-        Index('ix_services_approval_type', 'approval_type'),
-    )
+    created_at: Optional[datetime] = Field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = None
     
     def to_dict(self):
         """Convert model to dictionary"""
         return {
-            'id': str(self.id),
+            'id': self.id,
             'name': self.name,
             'description': self.description,
             'contact_info': self.contact_info,

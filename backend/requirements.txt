@@ -2,11 +2,12 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
-# Database
-sqlalchemy==2.0.23
-alembic==1.13.1
-psycopg2-binary==2.9.9
-asyncpg==0.28.0
+# Vector Store and Embeddings
+faiss-cpu>=1.8.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-community>=0.0.10
+sentence-transformers>=2.2.2
 
 # Document Processing
 python-docx==0.8.11

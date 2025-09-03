@@ -88,7 +88,7 @@ class LLMAnalyzer:
         
         context = "Релевантные нормативные документы:\n"
         for reg in regulations:
-            context += f"- {reg.get('title', 'Без названия')}: {reg.get('content', '')[:200]}...\n"
+            context += f"- {reg.get('title', 'Без названия')}: {reg.get('content', '')}\n"
         
         return context
     

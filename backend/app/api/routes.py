@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import logging
 import os
 from datetime import datetime
 import uuid
 
-from app.database.connection import get_db
+from app.database.connection import get_faiss_db
 from app.schemas.analysis import AnalysisResponse, CompareDocumentsRequest, ExportRequest
 from app.services.document_processor import DocumentProcessor
 from app.services.diff_analyzer import DiffAnalyzer
@@ -62,8 +61,7 @@ async def save_uploaded_file(file: UploadFile) -> str:
 async def compare_documents(
     background_tasks: BackgroundTasks,
     reference_doc: UploadFile = File(...),
-    client_doc: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    client_doc: UploadFile = File(...)
 ):
     """Compare two documents and analyze changes"""
     
@@ -93,7 +91,7 @@ async def compare_documents(
         for change in changes:
             # Find relevant regulations
             regulations = await regulatory_matcher.find_relevant_regulations(
-                change.text, db
+                change.text
             )
             
             # Get LLM analysis
@@ -183,14 +181,13 @@ async def export_results(
 
 @router.get("/regulations")
 async def get_regulations(
-    db: AsyncSession = Depends(get_db),
     skip: int = 0,
     limit: int = 100
 ):
     """Get list of regulations"""
     
     try:
-        regulations = await regulatory_matcher.get_regulations(db, skip, limit)
+        regulations = await regulatory_matcher.get_regulations(skip, limit)
         return regulations
         
     except Exception as e:
@@ -199,7 +196,6 @@ async def get_regulations(
 
 @router.get("/services")
 async def get_services(
-    db: AsyncSession = Depends(get_db),
     skip: int = 0,
     limit: int = 100
 ):
