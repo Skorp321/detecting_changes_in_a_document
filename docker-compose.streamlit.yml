@@ -43,24 +43,17 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - SECRET_KEY=your_secret_key_here_change_in_production
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-qwen3:32b}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://10f9698e-46b7-4a33-be37-f6495989f01f.modelrun.inference.cloud.ru}
       - ALLOWED_EXTENSIONS=pdf,docx,txt
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://95.31.20.57:3000,http://95.31.20.57,http://localhost,http://localhost:8501
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-52428800}
+      - FORCE_REBUILD_FAISS=true
     networks:
       - app-network
     healthcheck:
@@ -70,31 +63,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./db/sample_data.sql:/docker-entrypoint-initdb.d/02-sample-data.sql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
 

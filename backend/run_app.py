@@ -38,6 +38,7 @@ os.environ.setdefault('RATE_LIMIT_REQUESTS', '100')
 os.environ.setdefault('RATE_LIMIT_WINDOW', '60')
 os.environ.setdefault('FAISS_DIMENSION', '1536')
 os.environ.setdefault('FAISS_METRIC', 'cosine')
+os.environ.setdefault('FORCE_REBUILD_FAISS', 'true')  # Пересоздавать FAISS индекс при каждом запуске
 os.environ.setdefault('LANGCHAIN_TRACING_V2', 'false')
 os.environ.setdefault('LANGCHAIN_ENDPOINT', '')
 os.environ.setdefault('LANGCHAIN_API_KEY', '')
@@ -69,3 +70,5 @@ if __name__ == "__main__":
         workers=int(os.environ['WORKERS']),
         log_level=os.environ['LOG_LEVEL'].lower()
     )
+
+

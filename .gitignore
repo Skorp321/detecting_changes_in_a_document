@@ -20,4 +20,8 @@ backend/app/models/__pycache__/
 backend/app/services/__pycache__/
 backend/app/database/__pycache__/
 backend/app/schemas/__pycache__/
-backend/app/services/__pycache__/
+.vscode
+backend/.venv
+streamlit_app/.venv
+backend/app/services/__pycache__/__init__.cpython-312.pyc
+backend/documents

@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # Настройки API
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8088")
 
 
 def create_highlighted_html(text, is_original=True, highlighted_text=None):
@@ -264,143 +264,148 @@ def display_results():
 
     df = pd.DataFrame(df_data)
 
-    # Отображаем таблицу сравнения
-    st.markdown("### 📋 Таблица сравнения документов")
+    # Создаем подвкладки для таблицы сравнения и детального анализа
+    subtab1, subtab2 = st.tabs(["📋 Таблица сравнения документов", "🔬 Детальный анализ документов"])
+    
+    with subtab1:
+        # Отображаем таблицу сравнения
+        st.markdown("### 📋 Таблица сравнения документов")
 
-    # Настройки отображения таблицы
-    st.dataframe(
-        df,
-        use_container_width=True,
-        column_config={
-            "Редакция СБЛ": st.column_config.TextColumn(
-                "Редакция СБЛ",
-                width="medium",
-                help="Исходный текст из документа компании",
-            ),
-            "Редакция лизингополучателя": st.column_config.TextColumn(
-                "Редакция лизингополучателя",
-                width="medium",
-                help="Измененный текст из документа клиента",
-            ),
-            "Комментарии LLM": st.column_config.TextColumn(
-                "Комментарии LLM",
-                width="large",
-                help="Анализ изменений от искусственного интеллекта",
-            ),
-            "Необходимые согласования": st.column_config.TextColumn(
-                "Необходимые согласования",
-                width="medium",
-                help="Службы, которые должны согласовать изменения",
-            ),
-        },
-        hide_index=True,
-    )
+        # Настройки отображения таблицы
+        st.dataframe(
+            df,
+            use_container_width=True,
+            column_config={
+                "Редакция СБЛ": st.column_config.TextColumn(
+                    "Редакция СБЛ",
+                    width="medium",
+                    help="Исходный текст из документа компании",
+                ),
+                "Редакция лизингополучателя": st.column_config.TextColumn(
+                    "Редакция лизингополучателя",
+                    width="medium",
+                    help="Измененный текст из документа клиента",
+                ),
+                "Комментарии LLM": st.column_config.TextColumn(
+                    "Комментарии LLM",
+                    width="large",
+                    help="Анализ изменений от искусственного интеллекта",
+                ),
+                "Необходимые согласования": st.column_config.TextColumn(
+                    "Необходимые согласования",
+                    width="medium",
+                    help="Службы, которые должны согласовать изменения",
+                ),
+            },
+            hide_index=True,
+        )
 
-    # Детальный просмотр изменений
-    st.subheader("🔬 Детальный анализ изменений")
+    with subtab2:
+        # Детальный просмотр изменений
+        st.markdown("### 🔬 Детальный анализ изменений")
 
-    for i, change in enumerate(changes):
-        with st.expander(
-            f"Изменение {i+1}: {change.get('changeType', 'N/A')} - {change.get('severity', 'N/A')}"
-        ):
+        for i, change in enumerate(changes):
+            with st.expander(
+                f"Изменение {i+1}: {change.get('changeType', 'N/A')} - {change.get('severity', 'N/A')}"
+            ):
 
-            # Подсветка изменений с помощью HTML
-            original_text = change.get("originalText", "N/A")
-            modified_text = change.get("modifiedText", "N/A")
-            highlighted_original = change.get("highlightedOriginal", None)
-            highlighted_modified = change.get("highlightedModified", None)
+                # Подсветка изменений с помощью HTML
+                original_text = change.get("originalText", "N/A")
+                modified_text = change.get("modifiedText", "N/A")
+                highlighted_original = change.get("highlightedOriginal", None)
+                highlighted_modified = change.get("highlightedModified", None)
 
-            comparison_html = create_comparison_html(
-                original_text, modified_text, highlighted_original, highlighted_modified
-            )
-            st.markdown(comparison_html, unsafe_allow_html=True)
+                comparison_html = create_comparison_html(
+                    original_text, modified_text, highlighted_original, highlighted_modified
+                )
+                st.markdown(comparison_html, unsafe_allow_html=True)
 
-            # Анализ ИИ
-            st.markdown("**🤖 Анализ Ассистента:**")
-            st.info(change.get("llmComment", "N/A"))
+                # Анализ ИИ
+                st.markdown("**🤖 Анализ Ассистента:**")
+                st.info(change.get("llmComment", "N/A"))
 
-            # Метаданные и службы согласования
-            col3, col4 = st.columns(2)
+                # Метаданные и службы согласования
+                col3, col4 = st.columns(2)
 
-            with col3:
-                st.markdown("**🏢 Службы согласования:**")
+                with col3:
+                    st.markdown("**🏢 Службы согласования:**")
 
-                # Стандартные службы с описаниями
-                standard_services = [
-                    "ЮрУ",
-                    "ДСКБ", 
-                    "ПА",
-                    "ФС",
-                    "УСДС",
-                    "РД/УБУ",
-                    "КД",
-                ]
-                
-                service_descriptions = {
-                    "ЮрУ": "Юридическое управление",
-                    "ДСКБ": "Департамент скоринга и кредитного бизнеса",
-                    "ПА": "Правовой анализ",
-                    "ФС": "Финансовая служба",
-                    "УСДС": "Управление стратегического развития и стандартизации",
-                    "РД/УБУ": "Риск-департамент/Управление бизнес-услуг",
-                    "КД": "Кредитный департамент"
-                }
-                
-                current_services = change.get("requiredServices", [])
-
-                # Создаем чекбоксы для каждой службы с автоматической отметкой
-                selected_change_services = []
-                
-                for service in standard_services:
-                    is_selected = service in current_services
-                    description = service_descriptions.get(service, service)
+                    # Стандартные службы с описаниями
+                    standard_services = [
+                        "ЮрУ",
+                        "ДСКБ", 
+                        "ПА",
+                        "ФС",
+                        "УСДС",
+                        "РД/УБУ",
+                        "КД",
+                    ]
                     
-                    # Создаем уникальный ключ для каждого чекбокса
-                    checkbox_key = f"change_{i}_{service}_{change.get('id', i)}"
+                    service_descriptions = {
+                        "ЮрУ": "Юридическое управление",
+                        "ДСКБ": "Департамент скоринга и кредитного бизнеса",
+                        "ПА": "Правовой анализ",
+                        "ФС": "Финансовая служба",
+                        "УСДС": "Управление стратегического развития и стандартизации",
+                        "РД/УБУ": "Риск-департамент/Управление бизнес-услуг",
+                        "КД": "Кредитный департамент"
+                    }
                     
-                    if st.checkbox(
-                        f"{service} - {description}",
-                        value=is_selected,
-                        key=checkbox_key,
-                        help=f"Автоматически отмечено нейросетью: {'Да' if is_selected else 'Нет'}"
-                    ):
-                        selected_change_services.append(service)
-                
-                # Показываем статус автоматического выбора
-                if current_services:
-                    st.success(f"✅ Ассистент рекомендует {len(current_services)} служб для согласования")
-                    st.markdown(f"**Автоматически выбрано:** {', '.join(current_services)}")
-                else:
-                    st.warning("⚠️ Ассистент не определил необходимые службы")
+                    current_services = change.get("requiredServices", [])
 
-            with col4:
-                st.markdown("**📊 Метаданные:**")
-                st.markdown(f"• **Тип изменения:** {change.get('changeType', 'N/A')}")
-                st.markdown(f"• **Серьезность:** {change.get('severity', 'N/A')}")
-                st.markdown(f"• **Уверенность:** {(change.get('confidence', 0) * 100):.1f}%")
-                st.markdown(f"• **Дата:** {change.get('createdAt', 'N/A')}")
-
-                # Показываем выбранные службы для этого изменения
-                if selected_change_services:
-                    st.markdown(f"**Выбрано:** {', '.join(selected_change_services)}")
-                
-                # Уровень уверенности нейросети в выборе служб
-                service_confidence = change.get("serviceConfidence", 0)
-                if service_confidence > 0:
-                    st.markdown(f"**🎯 Уверенность ассистента в выборе служб:** {service_confidence:.1f}%")
+                    # Создаем чекбоксы для каждой службы с автоматической отметкой
+                    selected_change_services = []
                     
-                    # Прогресс-бар для уверенности
-                    st.progress(service_confidence / 100)
+                    for service in standard_services:
+                        is_selected = service in current_services
+                        description = service_descriptions.get(service, service)
+                        
+                        # Создаем уникальный ключ для каждого чекбокса
+                        checkbox_key = f"change_{i}_{service}_{change.get('id', i)}"
+                        
+                        if st.checkbox(
+                            f"{service} - {description}",
+                            value=is_selected,
+                            key=checkbox_key,
+                            help=f"Автоматически отмечено нейросетью: {'Да' if is_selected else 'Нет'}"
+                        ):
+                            selected_change_services.append(service)
                     
-                    if service_confidence < 50:
-                        st.warning("⚠️ Низкая уверенность - рекомендуется ручная проверка")
-                    elif service_confidence < 80:
-                        st.info("ℹ️ Средняя уверенность - рекомендуется дополнительная проверка")
+                    # Показываем статус автоматического выбора
+                    if current_services:
+                        st.success(f"✅ Ассистент рекомендует {len(current_services)} служб для согласования")
+                        st.markdown(f"**Автоматически выбрано:** {', '.join(current_services)}")
                     else:
-                        st.success("✅ Высокая уверенность в выборе служб")
+                        st.warning("⚠️ Ассистент не определил необходимые службы")
 
-            # Разделитель между изменениями
-            st.markdown("---")
+                with col4:
+                    st.markdown("**📊 Метаданные:**")
+                    st.markdown(f"• **Тип изменения:** {change.get('changeType', 'N/A')}")
+                    st.markdown(f"• **Серьезность:** {change.get('severity', 'N/A')}")
+                    st.markdown(f"• **Уверенность:** {(change.get('confidence', 0) * 100):.1f}%")
+                    st.markdown(f"• **Дата:** {change.get('createdAt', 'N/A')}")
+
+                    # Показываем выбранные службы для этого изменения
+                    if selected_change_services:
+                        st.markdown(f"**Выбрано:** {', '.join(selected_change_services)}")
+                    
+                    # Уровень уверенности нейросети в выборе служб
+                    service_confidence = change.get("serviceConfidence", 0)
+                    if service_confidence > 0:
+                        st.markdown(f"**🎯 Уверенность ассистента в выборе служб:** {service_confidence:.1f}%")
+                        
+                        # Прогресс-бар для уверенности
+                        st.progress(service_confidence / 100)
+                        
+                        if service_confidence < 50:
+                            st.warning("⚠️ Низкая уверенность - рекомендуется ручная проверка")
+                        elif service_confidence < 80:
+                            st.info("ℹ️ Средняя уверенность - рекомендуется дополнительная проверка")
+                        else:
+                            st.success("✅ Высокая уверенность в выборе служб")
+
+                # Разделитель между изменениями
+                st.markdown("---")
 
 
 def main():
