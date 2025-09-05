@@ -5,6 +5,8 @@ import pandas as pd
 from datetime import datetime
 import os
 import re
+import io
+import csv
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения
@@ -71,6 +73,90 @@ def highlight_changes(original_text, modified_text):
     """Подсветка изменений в тексте с помощью HTML"""
     # Эта функция теперь использует create_highlighted_html, которая определена выше
     pass
+
+
+def export_to_csv(analysis_result):
+    """Экспорт результатов анализа в CSV формат"""
+    try:
+        changes = analysis_result.get("changes", [])
+        if not changes:
+            st.error("Нет данных для экспорта")
+            return None
+        
+        # Создаем CSV в памяти
+        output = io.StringIO()
+        
+        # Определяем заголовки колонок
+        fieldnames = [
+            'Редакция СБЛ',
+            'Редакция лизингополучателя', 
+            'Комментарии LLM',
+            'Необходимые согласования',
+            'Тип изменения',
+            'Критичность',
+            'Уверенность',
+            'Дата создания'
+        ]
+        
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        # Записываем данные
+        for change in changes:
+            # Очищаем текст от HTML-тегов подсветки для CSV
+            original_text = re.sub(r'\[-\](.*?)\[/-\]', r'\1', change.get("originalText", ""))
+            original_text = re.sub(r'\[\+\](.*?)\[/\+\]', r'\1', original_text)
+            
+            modified_text = re.sub(r'\[-\](.*?)\[/-\]', r'\1', change.get("modifiedText", ""))
+            modified_text = re.sub(r'\[\+\](.*?)\[/\+\]', r'\1', modified_text)
+            
+            writer.writerow({
+                'Редакция СБЛ': original_text,
+                'Редакция лизингополучателя': modified_text,
+                'Комментарии LLM': change.get("llmComment", ""),
+                'Необходимые согласования': ', '.join(change.get("requiredServices", [])),
+                'Тип изменения': change.get("changeType", ""),
+                'Критичность': change.get("severity", ""),
+                'Уверенность': change.get("confidence", 0),
+                'Дата создания': change.get("createdAt", "")
+            })
+        
+        # Получаем содержимое CSV
+        csv_content = output.getvalue()
+        output.close()
+        
+        return csv_content.encode('utf-8-sig')  # BOM для корректного отображения в Excel
+        
+    except Exception as e:
+        st.error(f"Ошибка при создании CSV: {str(e)}")
+        return None
+
+
+def export_via_api(analysis_result):
+    """Экспорт результатов через API бэкенда"""
+    try:
+        # Подготавливаем данные для API
+        export_data = {
+            "results": analysis_result.get("changes", []),
+            "format": "csv"
+        }
+        
+        # Отправляем запрос на API
+        response = requests.post(
+            f"{API_BASE_URL}/api/export",
+            json=export_data,
+            timeout=60
+        )
+        
+        if response.status_code == 200:
+            return response.content
+        else:
+            st.error(f"Ошибка API при экспорте: {response.text}")
+            return None
+            
+    except Exception as e:
+        st.error(f"Ошибка при экспорте через API: {str(e)}")
+        return None
 
 
 def create_comparison_html(
@@ -219,6 +305,52 @@ def display_results():
 
     with col2:
         st.info(f"**Документ клиента:** {doc_info.get('clientDoc', 'N/A')}")
+
+    # Кнопка сохранения результатов
+    st.subheader("💾 Сохранение результатов")
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        st.info("💡 Сохраните результаты анализа в CSV файл для дальнейшего использования")
+    
+    with col2:
+        # Создаем имя файла с текущей датой
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"analysis_results_{timestamp}.csv"
+        
+        # Генерируем CSV данные
+        csv_data = None
+        try:
+            # Пробуем экспорт через API сначала
+            csv_data = export_via_api(result)
+            
+            # Если API не работает, используем локальный экспорт
+            if csv_data is None:
+                csv_data = export_to_csv(result)
+        except Exception as e:
+            st.error(f"❌ Ошибка при создании CSV файла: {str(e)}")
+            csv_data = None
+        
+        # Кнопка прямого скачивания
+        if csv_data:
+            st.download_button(
+                label="📥 Сохранить итоги анализа",
+                data=csv_data,
+                file_name=filename,
+                mime="text/csv",
+                type="primary",
+                use_container_width=True
+            )
+        else:
+            st.error("❌ Не удалось подготовить данные для экспорта")
+    
+    with col3:
+        # Показываем статистику для экспорта
+        changes_count = len(result.get("changes", []))
+        st.metric("Записей для экспорта", changes_count)
+
+    st.markdown("---")
 
     # Детальный анализ изменений
     st.subheader("� Детальный анализ изменений")
@@ -447,6 +579,42 @@ def main():
                 st.error("❌ API недоступен")
         except:
             st.error("❌ API недоступен")
+
+        st.markdown("---")
+
+        # Кнопка сохранения результатов в боковой панели
+        if st.session_state.get("analysis_completed", False):
+            st.subheader("💾 Экспорт результатов")
+            result = st.session_state.get("analysis_result")
+            if result:
+                # Создаем имя файла с текущей датой
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"analysis_results_{timestamp}.csv"
+                
+                # Генерируем CSV данные
+                csv_data = None
+                try:
+                    # Пробуем экспорт через API сначала
+                    csv_data = export_via_api(result)
+                    
+                    # Если API не работает, используем локальный экспорт
+                    if csv_data is None:
+                        csv_data = export_to_csv(result)
+                except Exception as e:
+                    st.error(f"❌ Ошибка: {str(e)}")
+                    csv_data = None
+                
+                # Кнопка прямого скачивания
+                if csv_data:
+                    st.download_button(
+                        label="📥 Сохранить в CSV",
+                        data=csv_data,
+                        file_name=filename,
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                else:
+                    st.error("❌ Ошибка создания CSV")
 
         st.markdown("---")
 
